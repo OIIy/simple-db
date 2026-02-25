@@ -1,11 +1,11 @@
 use std::fs;
 use serde::{Deserialize, Serialize};
-use serde_json::Result;
 
 #[derive(Serialize, Deserialize)]
 struct Table {
     name: String,
     columns: Vec<Column>,
+    rows: Vec<Row>
 }
 
 impl Table {
@@ -13,26 +13,32 @@ impl Table {
         Table {
             name,
             columns: Vec::new(),
+            rows: Vec::new(),
         }
     }
 
     fn add_column(&mut self, column: Column) {
         self.columns.push(column)
     }
+
+    fn add_columns(&mut self, columns: Vec<Column>) {
+        self.columns.extend(columns)
+    }
+
+    fn insert(&mut self, columns: Vec<Column>, values: Vec<String>) {
+
+    }
 }
 
 #[derive(Serialize, Deserialize)]
 struct Column {
     name: String,
-    value: String,
 }
 
 impl Column {
-    fn new(name: String, data_type: String, value: String) -> Column {
+    fn new(name: String) -> Column {
         Column {
-            name,
-            data_type,
-            value,
+            name
         }
     }
 }
@@ -47,9 +53,11 @@ fn main() -> std::io::Result<()> {
 
     let mut table = Table::new("hello".to_owned());
 
-    let columns = Column::new("world".to_owned(), "String".to_owned(), "".to_owned());
+    let mut columns = Vec::new();
+    columns.push(Column::new("Hello".to_string()));
+    columns.push(Column::new("World".to_string()));
 
-    table.add_column(columns);
+    table.add_columns(columns);
 
     let json = serde_json::to_string(&table)?;
 
