@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::Error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -25,8 +26,15 @@ impl Table {
         self.columns.extend(columns)
     }
 
-    fn insert(&mut self, columns: Vec<Column>, values: Vec<String>) {
+    fn insert(&mut self, values: Vec<String>) -> Result<(), Error> {
+        // Validate num of columns vs num values
+        if self.columns.len() != values.len() {
+            // Return error
+        }
 
+        // Loop over columns then take values[i]
+
+        // Create row with column values
     }
 }
 
