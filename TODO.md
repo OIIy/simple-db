@@ -5,7 +5,7 @@
 - [x] ~~Implement set~~
 - [x] ~~Implement get~~
 - [ ] Unit tests
-- [ ] Tidy up project files
+- [x] ~~Tidy up project files~~
 - [ ] Make updates to tables async
 - [ ] Support different data types
 - [ ] Support custom error types
