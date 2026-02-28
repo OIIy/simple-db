@@ -65,3 +65,79 @@ impl Table {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn column_can_be_added() {
+        let mut table = Table {
+            name: "test_table".into(),
+            columns: Vec::new(),
+            rows: HashMap::new(),
+            next_id: 0,
+        };
+
+        table.add_column(Column::new("col".into()));
+        let col_name = &table.columns.get(0).unwrap().name;
+
+        assert_eq!(table.columns.len(), 1);
+        assert_eq!(col_name, "col")
+    }
+
+    #[test]
+    fn multiple_columns_can_be_added() {
+        let mut table = Table {
+            name: "test_table".into(),
+            columns: Vec::new(),
+            rows: HashMap::new(),
+            next_id: 0,
+        };
+
+        let mut columns: Vec<Column> = Vec::new();
+
+        for n in 0..5 {
+            let col_name = format!("col_{}", n);
+            columns.push(Column::new(col_name))
+        }
+
+        table.add_columns(columns);
+
+        assert_eq!(table.columns.len(), 5);
+        assert_eq!(table.columns[0].name, "col_0");
+        assert_eq!(table.columns[1].name, "col_1");
+        assert_eq!(table.columns[2].name, "col_2");
+        assert_eq!(table.columns[3].name, "col_3");
+        assert_eq!(table.columns[4].name, "col_4");
+    }
+
+    #[test]
+    fn insert_fails_when_values_length_neq_columns_length() {
+        let mut table = Table {
+            name: "test_table".into(),
+            columns: vec![Column { name: "col_0".into() }],
+            rows: HashMap::new(),
+            next_id: 0,
+        };
+
+        let result = table.insert(vec!["val_1".into(), "val_2".into()]);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn insert_adds_new_row() {
+        let mut table = Table {
+            name: "test_table".into(),
+            columns: vec![Column { name: "col_0".into() }],
+            rows: HashMap::new(),
+            next_id: 0,
+        };
+
+        let _ = table.insert(vec!["val_1".into()]);
+        let row = &table.rows.get(&1).unwrap().values;
+
+        assert_eq!(row[0], Row { values: vec!["val_1".into()] }.values[0])
+    }
+}
