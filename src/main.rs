@@ -2,6 +2,8 @@ mod error;
 mod models;
 
 use std::fs;
+use std::io::Read;
+use std::net::{TcpListener, TcpStream};
 use crate::error::Result;
 use crate::models::column::Column;
 use crate::models::table::Table;
@@ -14,6 +16,28 @@ fn main() -> Result<()> {
     println!("{}", json);
 
     fs::write("simple_db.json", json)?;
+
+    let listener = TcpListener::bind("127.0.0.1:5895");
+    println!("Listening on 127.0.0.1:5895");
+
+    for stream in listener?.incoming() {
+        handle_client(stream?)?;
+    }
+
+    Ok(())
+}
+
+fn handle_client(mut stream: TcpStream) -> Result<()> {
+    let mut stream_buffer = [0; 1024];
+
+    match stream.read(&mut stream_buffer) {
+        Ok(bytes_read) if bytes_read > 0 => {
+            let received_text = String::from_utf8_lossy(&stream_buffer[..bytes_read]);
+            println!("{}", received_text);
+        },
+        Ok(_) => println!("Client disconnected cleanly."),
+        Err(e) => eprintln!("Failed to read from stream: {}", e),
+    }
 
     Ok(())
 }
