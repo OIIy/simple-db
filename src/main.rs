@@ -2,20 +2,24 @@ mod error;
 mod models;
 
 use std::collections::HashMap;
+use std::fmt::format;
 use std::fs;
 use std::io::Read;
 use std::iter::Peekable;
 use std::net::{TcpListener, TcpStream};
 use std::str::SplitWhitespace;
 use std::sync::{Mutex, OnceLock};
-use crate::error::{Result};
+use crate::error::{Error, Result};
 use crate::models::column::Column;
 use crate::models::table::Table;
 
-static TABLE_STORE: OnceLock<Mutex<HashMap<String, Table>>> = OnceLock::new();
+static TABLE_STORE: OnceLock<Mutex<TableStore>> = OnceLock::new();
 
-fn get_table_store() -> &'static Mutex<HashMap<String, String>> {
-    TABLE_STORE.get_or_init()
+fn get_or_init_table_store() -> &'static Mutex<TableStore> {
+    TABLE_STORE.get_or_init(|| {
+        let mut t = TableStore::new();
+        Mutex::new(t)
+    })
 }
 
 struct TableStore {
@@ -39,8 +43,11 @@ impl TableStore {
 }
 
 fn main() -> Result<()> {
-    let table = seed_table("simple_db")?;
-
+    let seeded_table_name = "simple_db";
+    let seeded_table = seed_table(seeded_table_name)?;
+    let mut ts_guard = get_or_init_table_store().lock()?;
+    ts_guard.add(seeded_table_name, seeded_table);
+    let table = ts_guard.get(seeded_table_name.to_string()).ok_or_else(|| format!("Critical Error: {} disappeared", seeded_table_name))?;
     let json = serde_json::to_string(&table)?;
 
     println!("{}", json);
@@ -74,9 +81,9 @@ fn handle_command(buf: &[u8]) -> Result<String> {
     /* Parsing */
     let command = parse_command(&mut tokens)?;
 
-    let response = execute_command(&command)?;
+    // let response = execute_command(&command)?;
 
-    Ok(response)
+    Ok("ok".into())
 }
 
 fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> Result<Command> {
@@ -118,19 +125,19 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> Result<Command> {
     }
 }
 
-fn execute_command(command: &Command) -> Result<String> {
-    // Build the response string using the command properties
-
-    match command {
-        Command::Get => {
-            // Access table
-
-
-            Ok("Success".into())
-        }
-        _ => Err("Command Not Found".into())
-    }
-}
+// fn execute_command(command: &Command) -> Result<String> {
+//     // Build the response string using the command properties
+//
+//     // match command {
+//     //     Command::Get => {
+//     //         // Access table
+//     //
+//     //
+//     //         Ok("Success".into())
+//     //     }
+//     //     _ => Err("Command Not Found".into())
+//     // }
+// }
 
 fn handle_client(mut stream: TcpStream) -> Result<()> {
     let mut stream_buffer = [0; 1024];
@@ -157,6 +164,5 @@ fn seed_table(table_name: &str) -> Result<Table> {
     table.insert(vec!["Saionara".to_string(), "World".to_string()])?;
     table.insert(vec!["Slan".to_string(), "World".to_string()])?;
     table.insert(vec!["Abientot".to_string(), "World".to_string()])?;
-
     Ok(table)
 }
