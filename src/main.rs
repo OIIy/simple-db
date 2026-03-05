@@ -1,56 +1,45 @@
 mod error;
 mod models;
 
-use std::collections::HashMap;
-use std::fmt::format;
 use std::fs;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::iter::Peekable;
 use std::net::{TcpListener, TcpStream};
+use std::ops::Deref;
 use std::str::SplitWhitespace;
 use std::sync::{Mutex, OnceLock};
 use crate::error::{Error, Result};
 use crate::models::column::Column;
 use crate::models::table::Table;
+use crate::models::table_store::{TableStore, TABLE_STORE};
 
-static TABLE_STORE: OnceLock<Mutex<TableStore>> = OnceLock::new();
+#[derive(Debug)]
+enum Command {
+    Get {
+        table_name: String,
+        columns: Vec<String>,
+        where_clause: Vec<String>,
+    }
+}
 
 fn get_or_init_table_store() -> &'static Mutex<TableStore> {
     TABLE_STORE.get_or_init(|| {
-        let mut t = TableStore::new();
+        let t = TableStore::new();
         Mutex::new(t)
     })
-}
-
-struct TableStore {
-    tables: HashMap<String, Table>,
-}
-
-impl TableStore {
-    fn new() -> TableStore {
-        TableStore {
-            tables: HashMap::new()
-        }
-    }
-
-    fn add(&mut self, table_name: &str, table: Table) {
-        self.tables.insert(table_name.to_string(), table);
-    }
-
-    fn get(&self, table_name: String) -> Option<&Table> {
-        self.tables.get(&table_name)
-    }
 }
 
 fn main() -> Result<()> {
     let seeded_table_name = "simple_db";
     let seeded_table = seed_table(seeded_table_name)?;
-    let mut ts_guard = get_or_init_table_store().lock()?;
-    ts_guard.add(seeded_table_name, seeded_table);
-    let table = ts_guard.get(seeded_table_name.to_string()).ok_or_else(|| format!("Critical Error: {} disappeared", seeded_table_name))?;
-    let json = serde_json::to_string(&table)?;
 
-    println!("{}", json);
+    let json: String;
+    {
+        let mut ts_guard = get_or_init_table_store().lock()?;
+        ts_guard.add(seeded_table_name, seeded_table);
+        let table = ts_guard.get(seeded_table_name.to_string()).ok_or_else(|| format!("Critical Error: {} disappeared", seeded_table_name))?;
+        json = serde_json::to_string(&table)?;
+    }
 
     fs::write("simple_db.json", json)?;
 
@@ -64,15 +53,6 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
-enum Command {
-    Get {
-        table_name: String,
-        columns: Vec<String>,
-        where_clause: Vec<String>,
-    }
-}
-
 fn handle_command(buf: &[u8]) -> Result<String> {
     /* Tokenization */
     let command_text = String::from_utf8_lossy(buf);
@@ -80,10 +60,9 @@ fn handle_command(buf: &[u8]) -> Result<String> {
 
     /* Parsing */
     let command = parse_command(&mut tokens)?;
+    let response = execute_command(&command)?;
 
-    // let response = execute_command(&command)?;
-
-    Ok("ok".into())
+    Ok(response)
 }
 
 fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> Result<Command> {
@@ -95,9 +74,7 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> Result<Command> {
     }
 
     let table_name = tokens.next().ok_or("Syntax Error: Expected table name after IN")?.to_string();
-
     let action = tokens.next().ok_or("Syntax Error: Expected action after table name")?;
-
     match action {
         "GET" => {
             let mut columns = Vec::new();
@@ -106,7 +83,6 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> Result<Command> {
                 if next_tok == "WHERE" {
                     break;
                 }
-
                 columns.push(tokens.next().unwrap().to_string());
             };
 
@@ -125,26 +101,26 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> Result<Command> {
     }
 }
 
-// fn execute_command(command: &Command) -> Result<String> {
-//     // Build the response string using the command properties
-//
-//     // match command {
-//     //     Command::Get => {
-//     //         // Access table
-//     //
-//     //
-//     //         Ok("Success".into())
-//     //     }
-//     //     _ => Err("Command Not Found".into())
-//     // }
-// }
+fn execute_command(command: &Command) -> Result<String> {
+    match command {
+        Command::Get { table_name, columns, where_clause } => {
+            let ts_guard = get_or_init_table_store().lock()?;
+            let table = ts_guard.tables.get(table_name).ok_or_else(|| format!("Critical Error: {} was not found", table_name))?;
+            let json = serde_json::to_string(&table)?;
+            Ok(json)
+        }
+        _ => Err("Command Not Found".into())
+    }
+}
 
 fn handle_client(mut stream: TcpStream) -> Result<()> {
     let mut stream_buffer = [0; 1024];
 
     match stream.read(&mut stream_buffer) {
         Ok(bytes_read) if bytes_read > 0 => {
-            handle_command(&stream_buffer[..bytes_read])?;
+            let response = handle_command(&stream_buffer[..bytes_read])?;
+            stream.write_all(response.as_bytes())?;
+            stream.flush()?;
         },
         Ok(_) => println!("Client disconnected cleanly."),
         Err(e) => eprintln!("Failed to read from stream: {}", e),
