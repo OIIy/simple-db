@@ -5,10 +5,9 @@ use std::fs;
 use std::io::{Read, Write};
 use std::iter::Peekable;
 use std::net::{TcpListener, TcpStream};
-use std::ops::Deref;
 use std::str::SplitWhitespace;
-use std::sync::{Mutex, OnceLock};
-use crate::error::{Error, Result};
+use std::sync::{Mutex};
+use crate::error::{Result};
 use crate::models::column::Column;
 use crate::models::table::Table;
 use crate::models::table_store::{TableStore, TABLE_STORE};
@@ -106,7 +105,8 @@ fn execute_command(command: &Command) -> Result<String> {
         Command::Get { table_name, columns, where_clause } => {
             let ts_guard = get_or_init_table_store().lock()?;
             let table = ts_guard.tables.get(table_name).ok_or_else(|| format!("Critical Error: {} was not found", table_name))?;
-            let json = serde_json::to_string(&table)?;
+            let ref_table = table.create_ref_table(columns);
+            let json = serde_json::to_string(&ref_table)?;
             Ok(json)
         }
         _ => Err("Command Not Found".into())

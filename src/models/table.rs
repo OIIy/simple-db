@@ -6,10 +6,21 @@ use super::row::Row;
 
 #[derive(Serialize, Deserialize)]
 pub struct Table {
-    name: String,
-    columns: Vec<Column>,
-    rows: HashMap<i64, Row>,
-    next_id: i64,
+    pub name: String,
+    pub columns: Vec<Column>,
+    pub rows: HashMap<i64, Row>,
+    pub next_id: i64,
+}
+
+#[derive(Serialize)]
+pub struct RefTable<'a> {
+    pub columns: Vec<&'a Column>,
+    pub rows: Vec<RefRow<'a>>,
+}
+
+#[derive(Serialize)]
+pub struct RefRow<'a> {
+    pub values: Vec<&'a str>
 }
 
 impl Table {
@@ -19,6 +30,33 @@ impl Table {
             columns: Vec::new(),
             rows: HashMap::new(),
             next_id: 0,
+        }
+    }
+
+    pub fn create_ref_table(&self, selected_cols: &Vec<String>) -> RefTable {
+        let indices: Vec<usize> = self.columns.iter()
+            .enumerate()
+            .filter(|(_, col)| selected_cols.contains(&col.name.to_lowercase()))
+            .map(|(i, _)| i)
+            .collect();
+
+        let ref_columns: Vec<&Column> = indices.iter()
+            .map(|&i| &self.columns[i])
+            .collect();
+
+        let ref_rows: Vec<RefRow> = self.rows.iter()
+            .map(|(_, row)| {
+                let selected_values: Vec<&str> = indices.iter()
+                    .map(|&i| row.values[i].as_str())
+                    .collect();
+
+                RefRow { values: selected_values }
+            })
+            .collect();
+
+        RefTable {
+            columns: ref_columns,
+            rows: ref_rows
         }
     }
 

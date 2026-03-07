@@ -1,4 +1,6 @@
 ### Todo
+- [ ] Implement SET/INS/DEL commands
+- [ ] Get full test coverage
 - [ ] Make updates to tables async
 - [ ] Support different data types
 - [ ] Support custom error types
@@ -54,3 +56,7 @@ performing some operation.
 
 #### How do we store/format table data?
 We'll just start with a hashmap and serialize to JSON to begin with.
+
+#### How do we filter table columns
+Create reference table, which is just a collection of pointers to the original table's columns and rows.
+So we return a temporary table, whose data references the source table. The references should be immutable.
