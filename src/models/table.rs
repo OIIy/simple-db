@@ -23,6 +23,7 @@ pub struct RefRow<'a> {
     pub values: Vec<&'a str>
 }
 
+#[allow(dead_code)]
 impl Table {
     pub fn new(name: String) -> Table {
         Table {
@@ -33,7 +34,15 @@ impl Table {
         }
     }
 
-    pub fn create_ref_table(&self, selected_cols: &Vec<String>) -> RefTable {
+    pub fn create_ref_table(&self, selected_cols: &Vec<String>, where_clause: &Vec<String>) -> RefTable<'_> {
+        // First, filter the ref_table by the where clause
+
+        // Interpret the intention from the tokens
+
+        // Column name will always be after WHERE
+        // operator will always be after the column
+        // then value will be after that.
+
         let indices: Vec<usize> = self.columns.iter()
             .enumerate()
             .filter(|(_, col)| selected_cols.contains(&col.name.to_lowercase()))

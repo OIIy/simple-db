@@ -69,7 +69,25 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> crate::error::Result
             })
         },
         "SET" => {
-            todo!()
+            let mut columns = Vec::new();
+
+            while let Some(&next_tok) = tokens.peek() {
+                if next_tok == "WHERE" {
+                    break;
+                }
+                columns.push(tokens.next().expect("Next token disappeared").to_string());
+            };
+
+            let mut where_clause = Vec::new();
+            if tokens.next() == Some("WHERE") {
+                where_clause = tokens.map(|x| x.to_string()).collect();
+            }
+
+            Ok(Command::Set {
+                table_name,
+                columns,
+                where_clause
+            })
         }
         "INS" => {
             let mut values = Vec::new();
@@ -96,7 +114,7 @@ fn execute_command(command: &Command) -> crate::error::Result<String> {
         Command::Get { table_name, columns, where_clause } => {
             let ts_guard = get_or_init_table_store().lock()?;
             let table = ts_guard.tables.get(table_name).ok_or_else(|| format!("Critical Error: {} was not found", table_name))?;
-            let ref_table = table.create_ref_table(columns);
+            let ref_table = table.create_ref_table(columns, where_clause);
             let json = serde_json::to_string(&ref_table)?;
             Ok(json)
         },

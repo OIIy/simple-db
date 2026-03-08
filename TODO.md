@@ -1,4 +1,5 @@
 ### Todo
+- [ ] Support where clauses
 - [ ] Implement SET/DEL commands
 - [ ] Implement table name/column name validation
 - [ ] Support custom error types
