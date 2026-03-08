@@ -1,9 +1,12 @@
 ### Todo
-- [ ] Implement SET/INS/DEL commands
+- [ ] Implement SET/DEL commands
+- [ ] Implement table name/column name validation
+- [ ] Support custom error types
+- [ ] Return proper errors to the client without crashing server
+- [ ] Refactor table_store to be passed by reference for testability
 - [ ] Get full test coverage
 - [ ] Make updates to tables async
-- [ ] Support different data types
-- [ ] Support custom error types
+- [ ] Support different column data types
 - [ ] Add stricter definitions for rows, they should be constrained 
 by column types
 - [ ] Add value indexing
@@ -60,3 +63,5 @@ We'll just start with a hashmap and serialize to JSON to begin with.
 #### How do we filter table columns
 Create reference table, which is just a collection of pointers to the original table's columns and rows.
 So we return a temporary table, whose data references the source table. The references should be immutable.
+
+Remove unnecessary scope/binding at main:48-54 - The explicit scope and json variable can be simplified?

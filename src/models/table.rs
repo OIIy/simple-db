@@ -104,6 +104,21 @@ impl Table {
     }
 }
 
+pub fn seed_table(table_name: &str) -> crate::error::Result<Table> {
+    let mut table = Table::new(table_name.to_owned());
+    let mut columns = Vec::new();
+    columns.push(Column::new("Hello".to_string()));
+    columns.push(Column::new("World".to_string()));
+    table.add_columns(columns);
+    table.insert(vec!["Goodbye".to_string(), "World".to_string()])?;
+    table.insert(vec!["Adios".to_string(), "World".to_string()])?;
+    table.insert(vec!["Saionara".to_string(), "World".to_string()])?;
+    table.insert(vec!["Slan".to_string(), "World".to_string()])?;
+    table.insert(vec!["Abientot".to_string(), "World".to_string()])?;
+    Ok(table)
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
