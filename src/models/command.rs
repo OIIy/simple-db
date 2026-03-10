@@ -2,6 +2,13 @@ use std::iter::Peekable;
 use std::str::SplitWhitespace;
 use crate::get_or_init_table_store;
 
+pub enum WhereClause {
+    Equal(String, String),
+    NotEqual(String, String),
+    GreaterThan(String, String),
+    LessThan(String, String),
+}
+
 #[derive(Debug)]
 pub enum Command {
     Get {
