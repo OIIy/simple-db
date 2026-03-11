@@ -64,15 +64,33 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> crate::error::Result
                 columns.push(tokens.next().expect("Next token disappeared").to_string());
             };
 
-            let mut where_clause = Vec::new();
+            let mut where_tokens = Vec::new();
             if tokens.next() == Some("WHERE") {
-                where_clause = tokens.map(|x| x.to_string()).collect();
+                where_tokens = tokens.map(|x| x.to_string()).collect();
+
+                let mut value_operand: String;
+                // Interpret the intention from the tokens
+                while let Some(tok) = where_tokens.iter().next() {
+                    // if the token is surrounded by double quotes then treat it as a value
+                    if tok.ends_with("\"") && tok.starts_with("\"") {
+                        value_operand = tok.to_string();
+                        continue;
+                    }
+
+                    // expect the next token to be some operator
+
+                    // and the final token to be a keyword/column name
+                }
+
+                // Column name will always be after WHERE
+                // operator will always be after the column
+                // then value will be after that.
             }
 
             Ok(Command::Get {
                 table_name,
                 columns,
-                where_clause
+                where_clause: where_tokens
             })
         },
         "SET" => {

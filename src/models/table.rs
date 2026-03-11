@@ -42,7 +42,6 @@ impl Table {
         // Column name will always be after WHERE
         // operator will always be after the column
         // then value will be after that.
-
         let indices: Vec<usize> = self.columns.iter()
             .enumerate()
             .filter(|(_, col)| selected_cols.contains(&col.name.to_lowercase()))
