@@ -2,11 +2,11 @@ use std::iter::Peekable;
 use std::str::SplitWhitespace;
 use crate::get_or_init_table_store;
 
+#[derive(Debug)]
 pub enum WhereClause {
     Equal(String, String),
     NotEqual(String, String),
-    GreaterThan(String, String),
-    LessThan(String, String),
+    // Contains(String, String)
 }
 
 #[derive(Debug)]
@@ -14,12 +14,12 @@ pub enum Command {
     Get {
         table_name: String,
         columns: Vec<String>,
-        where_clause: Vec<String>,
+        where_clause: Option<WhereClause>,
     },
     Set {
         table_name: String,
         columns: Vec<String>,
-        where_clause: Vec<String>,
+        where_clause: Option<WhereClause>,
     },
     Insert {
         table_name: String,
@@ -27,7 +27,7 @@ pub enum Command {
     },
     Delete {
         table_name: String,
-        where_clause: Vec<String>,
+        where_clause: Option<WhereClause>,
     },
 }
 
@@ -64,33 +64,40 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> crate::error::Result
                 columns.push(tokens.next().expect("Next token disappeared").to_string());
             };
 
-            let mut where_tokens = Vec::new();
-            if tokens.next() == Some("WHERE") {
-                where_tokens = tokens.map(|x| x.to_string()).collect();
+            let where_clause = if tokens.next() == Some("WHERE") {
+                let where_tokens: Vec<String> = tokens.map(|x| x.to_string()).collect();
 
-                let mut value_operand: String;
-                // Interpret the intention from the tokens
-                while let Some(tok) = where_tokens.iter().next() {
-                    // if the token is surrounded by double quotes then treat it as a value
-                    if tok.ends_with("\"") && tok.starts_with("\"") {
-                        value_operand = tok.to_string();
-                        continue;
-                    }
-
-                    // expect the next token to be some operator
-
-                    // and the final token to be a keyword/column name
+                if where_tokens.len() < 3 {
+                    return Err("Invalid WHERE clause".into())
                 }
 
-                // Column name will always be after WHERE
-                // operator will always be after the column
-                // then value will be after that.
-            }
+                let col_operand = where_tokens[0].clone();
+                let operator = where_tokens[1].clone();
+                let value_operand = where_tokens[2].clone();
+
+                match operator.as_str() {
+                    "=" => {
+                        Some(WhereClause::Equal(
+                            col_operand,
+                            value_operand,
+                        ))
+                    },
+                    "!=" => {
+                        Some(WhereClause::NotEqual(
+                            col_operand,
+                            value_operand,
+                        ))
+                    },
+                    _ => return Err("Operator not supported".into())
+                }
+            } else {
+                None
+            };
 
             Ok(Command::Get {
                 table_name,
                 columns,
-                where_clause: where_tokens
+                where_clause,
             })
         },
         "SET" => {
@@ -103,10 +110,12 @@ fn parse_command(tokens: &mut Peekable<SplitWhitespace>) -> crate::error::Result
                 columns.push(tokens.next().expect("Next token disappeared").to_string());
             };
 
-            let mut where_clause = Vec::new();
+            let mut where_tokens = Vec::new();
             if tokens.next() == Some("WHERE") {
-                where_clause = tokens.map(|x| x.to_string()).collect();
+                where_tokens = tokens.map(|x| x.to_string()).collect();
             }
+            
+            let where_clause: Option<WhereClause> = None;
 
             Ok(Command::Set {
                 table_name,

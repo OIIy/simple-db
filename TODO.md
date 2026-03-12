@@ -1,6 +1,6 @@
 ### Todo
 - [ ] Support where clauses
-- [ ] Support where clause chaining
+- [ ] Support where clause chaining with AND
 - [ ] Implement SET/DEL commands
 - [ ] Implement table name/column name validation
 - [ ] Support custom error types

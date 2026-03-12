@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::error::Error;
+use crate::models::command::WhereClause;
 use super::column::Column;
 use super::row::Row;
 
@@ -34,7 +35,7 @@ impl Table {
         }
     }
 
-    pub fn create_ref_table(&self, selected_cols: &Vec<String>, where_clause: &Vec<String>) -> RefTable<'_> {
+    pub fn create_ref_table(&self, selected_cols: &Vec<String>, where_clause: &Option<WhereClause>) -> RefTable<'_> {
         // First, filter the ref_table by the where clause
 
         // Interpret the intention from the tokens
